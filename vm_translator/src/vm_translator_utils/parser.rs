@@ -1,6 +1,7 @@
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
+use regex::Regex;
 
 pub struct Parser {
     buf_reader: BufReader<File>,
@@ -39,13 +40,13 @@ pub struct Instruction {
 }
 
 impl Parser {
-    pub fn new(_fname: String) -> Parser {
+    pub fn new(_fname: &str) -> Parser {
         let file = File::open(_fname).expect("Error opening file");
         let buf_reader = BufReader::new(file);
         Parser { buf_reader }
     }
 
-    pub fn get_command_enum(s: &str) -> Result<Command, &str> {
+    fn get_command_enum(s: &str) -> Result<Command, &str> {
         match s {
             "pop" => Ok(Command::POP),
             "push" => Ok(Command::PUSH),
@@ -57,7 +58,7 @@ impl Parser {
         }
     }
 
-    pub fn get_mem_type(s: &str) -> Result<MemoryType, &str> {
+    fn get_mem_type(s: &str) -> Result<MemoryType, &str> {
         match s {
             "local" => Ok(MemoryType::LOCAL),
             "static" => Ok(MemoryType::STATIC),
@@ -66,6 +67,13 @@ impl Parser {
             "argument" => Ok(MemoryType::ARGUMENT),
             _ => Err("Unkown memory type"),
         }
+    }
+
+    fn get_instructon_from_line(line: &str)->&str {
+        // remove comments and new line character
+        let re = Regex::new(r"^(.*?)(?=/{2}|\n)").unwrap();
+        let caps = re.captures(&line).unwrap();
+        caps.get(1).map_or("", |m| m.as_str())
     }
 
     pub fn get_next_instruction(self: &mut Self) -> Result<Option<Instruction>, &str> {
@@ -79,7 +87,9 @@ impl Parser {
             return Ok(None);
         }
 
-        let sp: Vec<&str> = line.split(" ").collect();
+        let instruction_line = Self::get_instructon_from_line(&line);
+
+        let sp: Vec<&str> = instruction_line.split(" ").collect();
         let command = Self::get_command_enum(sp[0]).unwrap();
         if sp.len() == 3 {
             let mem_type: MemoryType = Self::get_mem_type(sp[1]).unwrap();
