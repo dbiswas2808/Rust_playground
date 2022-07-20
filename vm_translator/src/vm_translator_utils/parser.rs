@@ -88,6 +88,10 @@ impl Parser {
         }
 
         let instruction_line = Self::get_instructon_from_line(&line);
+        if instruction_line.len() == 0 {
+            // No instruction
+            return Ok(None);
+        }
 
         let sp: Vec<&str> = instruction_line.split(" ").collect();
         let command = Self::get_command_enum(sp[0]).unwrap();
