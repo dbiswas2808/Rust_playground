@@ -1,7 +1,7 @@
+use fancy_regex::Regex;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
-use regex::Regex;
 
 pub struct Parser {
     buf_reader: BufReader<File>,
@@ -28,14 +28,14 @@ pub enum MemoryType {
     THAT,
 }
 
-struct MemoryRegister {
+struct RegisterFromBase {
     r: i64,
 }
 
 pub struct Instruction {
     command: Command,
     mem_type: Option<MemoryType>,
-    register: Option<MemoryRegister>,
+    register: Option<RegisterFromBase>,
     instruction_string: String,
 }
 
@@ -69,48 +69,74 @@ impl Parser {
         }
     }
 
-    fn get_instructon_from_line(line: &str)->&str {
-        // remove comments and new line character
+    fn get_instruction_if_any(line: &str) -> Option<&str> {
+        // upto the begining of comments
         let re = Regex::new(r"^(.*?)(?=/{2}|\n)").unwrap();
-        let caps = re.captures(&line).unwrap();
-        caps.get(1).map_or("", |m| m.as_str())
+        match re.find(&line).expect("Error reading line") {
+            Some(val) => Some(val.as_str()),
+            None => None,
+        }
+    }
+
+    fn get_next_instruction_line(self: &mut Self) -> Option<String> {
+        loop {
+            let mut line = String::new();
+            let bytes_read = self
+                .buf_reader
+                .read_line(&mut line)
+                .expect("Error in reading buffer");
+            match bytes_read {
+                0 => {
+                    print!("End of file reached");
+                    return None;
+                }
+                _ => match Self::get_instruction_if_any(&line) {
+                    Some(val) => match val {
+                        "" => {
+                            continue;
+                        }
+                        _ => {
+                            return Some(val.to_string());
+                        }
+                    },
+                    None => {
+                        continue;
+                    }
+                },
+            }
+        }
     }
 
     pub fn get_next_instruction(self: &mut Self) -> Result<Option<Instruction>, &str> {
-        let mut line = String::new();
-        let len = self
-            .buf_reader
-            .read_line(&mut line)
-            .expect("Error in reading buffer");
-        if len == 0 {
-            print!("End of file reached");
-            return Ok(None);
+        match self.get_next_instruction_line() {
+            Some(instruction_line) => {
+                let sp: Vec<&str> = instruction_line.split(" ").collect();
+
+                match sp.len() {
+                    0 => Ok(None),
+                    1 => Ok(Some(Instruction {
+                        command: Self::get_command_enum(sp[0]).unwrap(),
+                        mem_type: None,
+                        register: None,
+                        instruction_string: "TODO: line".to_string(),
+                    })),
+                    3 => {
+                        let mem_type: MemoryType = Self::get_mem_type(sp[1]).unwrap();
+                        let mem_register = RegisterFromBase {
+                            r: sp[2].parse().unwrap(),
+                        };
+                        return Ok(Some(Instruction {
+                            command: Self::get_command_enum(sp[0]).unwrap(),
+                            mem_type: Some(mem_type),
+                            register: Some(mem_register),
+                            instruction_string: "TODO: line".to_string(),
+                        }));
+                    }
+                    _ => return Err("Invalid command"),
+                }
+            }
+
+            None => Ok(None),
         }
-
-        let instruction_line = Self::get_instructon_from_line(&line);
-
-        let sp: Vec<&str> = instruction_line.split(" ").collect();
-        let command = Self::get_command_enum(sp[0]).unwrap();
-        if sp.len() == 3 {
-            let mem_type: MemoryType = Self::get_mem_type(sp[1]).unwrap();
-            let mem_register = MemoryRegister {
-                r: sp[2].parse().unwrap(),
-            };
-            return Ok(Some(Instruction {
-                command: command,
-                mem_type: Some(mem_type),
-                register: Some(mem_register),
-                instruction_string: line,
-            }));
-        } else if sp.len() > 3 {
-            return Err("Not a valid instruction");
-        }
-
-        Ok(Some(Instruction {
-            command: command,
-            mem_type: None,
-            register: None,
-            instruction_string: line,
-        }))
     }
 }
