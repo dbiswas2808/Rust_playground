@@ -1,3 +1,4 @@
+use super::vm_instruction::*;
 use fancy_regex::Regex;
 use std::fs::File;
 use std::io::prelude::*;
@@ -7,41 +8,8 @@ pub struct Parser {
     buf_reader: BufReader<File>,
 }
 
-pub enum Command {
-    POP,
-    PUSH,
-    ADD,
-    SUB,
-    EQ,
-    OR,
-    AND,
-}
-
-pub enum MemoryType {
-    STATIC,
-    LOCAL,
-    ARGUMENT,
-    GLOBAL,
-    CONSTANT,
-    TEMP,
-    THIS,
-    THAT,
-}
-
-struct RegisterFromBase {
-    r: i64,
-}
-
-pub struct Instruction {
-    command: Command,
-    mem_type: Option<MemoryType>,
-    register: Option<RegisterFromBase>,
-    instruction_string: String,
-}
-
 impl Parser {
-    pub fn new(_fname: &str) -> Parser {
-        let file = File::open(_fname).expect("Error opening file");
+    pub fn new(file: File) -> Parser {
         let buf_reader = BufReader::new(file);
         Parser { buf_reader }
     }
