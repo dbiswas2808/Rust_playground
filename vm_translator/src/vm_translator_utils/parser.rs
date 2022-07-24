@@ -73,7 +73,7 @@ impl Parser {
         // upto the begining of comments
         let re = Regex::new(r"^(.*?)(?=/{2}|\n)").unwrap();
         match re.find(&line).expect("Error reading line") {
-            Some(val) => Some(val.as_str()),
+            Some(val) => Some(val.as_str().trim()),
             None => None,
         }
     }
@@ -110,7 +110,7 @@ impl Parser {
     pub fn get_next_instruction(self: &mut Self) -> Result<Option<Instruction>, &str> {
         match self.get_next_instruction_line() {
             Some(instruction_line) => {
-                let sp: Vec<&str> = instruction_line.split(" ").collect();
+                let sp: Vec<&str> = instruction_line.split_whitespace().collect();
 
                 match sp.len() {
                     0 => Ok(None),
@@ -132,7 +132,7 @@ impl Parser {
                             instruction_string: "TODO: line".to_string(),
                         }));
                     }
-                    _ => return Err("Invalid command"),
+                    _ => return Err("Invalid instruction"),
                 }
             }
 
