@@ -35,6 +35,7 @@ impl VmPointer {
             "THAT" => Ok(MemorySegment::THAT),
             "POINTER" => Ok(MemorySegment::POINTER),
             "STATIC" => Ok(MemorySegment::STATIC),
+            _ => Err("Unknown memory segment string."),
         }
     }
 
@@ -45,14 +46,14 @@ impl VmPointer {
         }
     }
 
-    // Load ptr to register D
+    // Generate instructions to load ptr to register M
     pub fn generate_load_pointer(&self) -> String {
-        let mut assembly: String = self.mem_seg.generate_memory_load();
+        let mem_load: String = self.mem_seg.generate_memory_load();
         let a = CpuRegisters::A.as_string();
         let m = CpuRegisters::M.as_string();
         let r = self.register_from_segment_base;
 
-        format!("{}\n{}", assembly, format!("{a} = {m} + {r}",))
+        format!("{}\n{}", mem_load, format!("{a} = {m} + {r}"))
     }
 }
 
@@ -176,7 +177,7 @@ pub enum MemorySegment {
 }
 
 impl MemorySegment {
-    pub fn generate_memory_load(self) -> String {
+    pub fn generate_memory_load(&self) -> String {
         match self {
             MemorySegment::STACK => String::from("@STACK"),
             MemorySegment::LOCAL => String::from("@LOCAL"),
@@ -187,6 +188,7 @@ impl MemorySegment {
             MemorySegment::TEMP => String::from("@TEMP"),
             MemorySegment::THIS => String::from("@THIS"),
             MemorySegment::THAT => String::from("@THAT"),
+            MemorySegment::POINTER => String::from("POINTER"),
         }
     }
 }
