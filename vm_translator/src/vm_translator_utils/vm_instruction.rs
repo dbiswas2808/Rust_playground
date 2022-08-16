@@ -26,15 +26,15 @@ pub struct VmPointer {
 impl VmPointer {
     fn get_mem_segment(mem_seg_str: &str) -> Result<MemorySegment, &'static str> {
         match mem_seg_str {
-            "LOCAL" => Ok(MemorySegment::LOCAL),
-            "ARGUMENT" => Ok(MemorySegment::ARGUMENT),
-            "GLOBAL" => Ok(MemorySegment::GLOBAL),
-            "CONSTANT" => Ok(MemorySegment::CONSTANT),
-            "TEMP" => Ok(MemorySegment::TEMP),
-            "THIS" => Ok(MemorySegment::THIS),
-            "THAT" => Ok(MemorySegment::THAT),
-            "POINTER" => Ok(MemorySegment::POINTER),
-            "STATIC" => Ok(MemorySegment::STATIC),
+            "local" => Ok(MemorySegment::LOCAL),
+            "argument" => Ok(MemorySegment::ARGUMENT),
+            "global" => Ok(MemorySegment::GLOBAL),
+            "constant" => Ok(MemorySegment::CONSTANT),
+            "temp" => Ok(MemorySegment::TEMP),
+            "this" => Ok(MemorySegment::THIS),
+            "that" => Ok(MemorySegment::THAT),
+            "pointer" => Ok(MemorySegment::POINTER),
+            "static" => Ok(MemorySegment::STATIC),
             _ => Err("Unknown memory segment string."),
         }
     }
@@ -72,8 +72,8 @@ impl ops::SubAssign<i32> for VmPointer {
     }
 }
 
-// Implement this trait for generating instruction level assembly
-trait GenerateAssembly {
+// Implement this trait for generating assembly level instructions
+pub trait GenerateAssembly {
     fn generate_assembly(self, stack_ptr: &mut VmPointer) -> String;
 }
 
@@ -96,12 +96,12 @@ impl GenerateAssembly for Push {
         let d = CpuRegisters::D.as_string();
         let m = CpuRegisters::M.as_string();
         let load_ptr = self.ptr.generate_load_pointer();
-        let copy_to_D = format!("{d} = {m}");
+        let copy_to_d = format!("{d} = {m}");
         let stack_load = stack_ptr.generate_load_pointer();
         let copy_to_stack = format!("{m} = {d}");
         *stack_ptr += 1;
 
-        [load_ptr, copy_to_D, stack_load, copy_to_stack].join("\n")
+        [load_ptr, copy_to_d, stack_load, copy_to_stack].join("\n")
     }
 }
 
@@ -114,6 +114,12 @@ impl Pop {
         Pop {
             ptr: VmPointer::from(&instruction_str[1..]),
         }
+    }
+}
+
+impl GenerateAssembly for Pop {
+    fn generate_assembly(self, stack_ptr: &mut VmPointer) -> String {
+        String::from("TODO")
     }
 }
 
@@ -130,6 +136,15 @@ impl MemoryAccess {
             "push" => Ok(MemoryAccess::PUSH(Push::from(&instruction_str))),
             "pop" => Ok(MemoryAccess::POP(Pop::from(&instruction_str))),
             _ => Err("Unknown memory acces instruction"),
+        }
+    }
+}
+
+impl GenerateAssembly for MemoryAccess {
+    fn generate_assembly(self, stack_ptr: &mut VmPointer) -> String {
+        match self {
+            MemoryAccess::PUSH(push) => push.generate_assembly(stack_ptr),
+            MemoryAccess::POP(pop) => pop.generate_assembly(stack_ptr),
         }
     }
 }
@@ -160,6 +175,12 @@ impl Arithmetic {
             "not" => Ok(Arithmetic::NOT),
             _ => Err("Command not recognized"),
         }
+    }
+}
+
+impl GenerateAssembly for Arithmetic {
+    fn generate_assembly(self, stack_ptr: &mut VmPointer) -> String {
+        String::from("TODO")
     }
 }
 
@@ -204,6 +225,15 @@ impl Instruction {
             1 => Ok(Instruction::Arithmetic(Arithmetic::from(s[0]).unwrap())),
             3 => Ok(Instruction::MemoryAccess(MemoryAccess::from(s).unwrap())),
             _ => Err("Unknown instruction"),
+        }
+    }
+}
+
+impl GenerateAssembly for Instruction {
+    fn generate_assembly(self, stack_ptr: &mut VmPointer) -> String {
+        match self {
+            Instruction::MemoryAccess(inst) => inst.generate_assembly(stack_ptr),
+            Instruction::Arithmetic(inst) => inst.generate_assembly(stack_ptr),
         }
     }
 }
