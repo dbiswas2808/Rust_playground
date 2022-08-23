@@ -1,4 +1,1 @@
-// Some comment
 push local 2
-pop local 3
-add
